@@ -1,6 +1,6 @@
 from discord.ext import commands
-from discord import app_commands, Interaction, Object as discord_obj
-from discord import Reaction, Member, User, Colour
+from discord import app_commands, Interaction, Guild, Object as discord_obj
+from discord import Member, User, Colour, RawReactionActionEvent, PermissionOverwrite
 from discord.app_commands import Choice
 from json import loads, dumps
 from typing import List, Union, Dict, Any
@@ -9,7 +9,6 @@ from datetime import datetime
 
 """Fenn's Bulking Server Commands"""
 
-fenns_bulking_guild = discord_obj(id=1172288447592022146)
 
 class Bulker:
     def __init__(self) -> None:
@@ -19,7 +18,7 @@ class Bulker:
 
     def workouts(self):
         return self._workouts
-    
+
     def exercises(self):
         return self._exercises
 
@@ -27,10 +26,22 @@ class Bulker:
         with open("resources/exercises.json") as workouts:
             # Read workouts from json file
             workout_data = loads(workouts.read())["workouts"]
-            self._workouts = list(map(lambda workout: Choice(name=workout, value=workout), workout_data.keys()))
+            self._workouts = list(
+                map(
+                    lambda workout: Choice(name=workout, value=workout),
+                    workout_data.keys(),
+                )
+            )
             self._exercises = workout_data
-    
-    def update_user_set(self, member: Union[Member, User], exercise: str, reps: int, weights: int, note: str = "") -> bool:
+
+    def update_user_set(
+        self,
+        member: Union[Member, User],
+        exercise: str,
+        reps: int,
+        weights: int,
+        note: str = "",
+    ) -> bool:
         """Exercise must be a valid name. Returns true if the set is a personal record."""
         # Users should all exist, but just in case...
         self.check_db_for(member.id, member.global_name)
@@ -46,15 +57,25 @@ class Bulker:
                 user_data["progression"][date_today] = {}
             # add exercise to today
             user_data["progression"][date_today][exercise] = {
-                "reps": reps, "weight": weights, "note": note
+                "reps": reps,
+                "weight": weights,
+                "note": note,
             }
             # check if personal best
             # best is determined by weights atm
-            record = True if exercise not in user_data["personal_best"] or user_data["personal_best"][exercise]["weight"] < weights else False
+            record = (
+                True
+                if exercise not in user_data["personal_best"]
+                or user_data["personal_best"][exercise]["weight"] < weights
+                else False
+            )
             if record:
                 # Update personal best
                 user_data["personal_best"][exercise] = {
-                    "date": date_today, "reps": reps, "weight": weights, "note": note
+                    "date": date_today,
+                    "reps": reps,
+                    "weight": weights,
+                    "note": note,
                 }
             # update stats
             user_stats.seek(0)
@@ -68,11 +89,13 @@ class Bulker:
         """Checks database for user."""
         with open("resources/userstats.json", "r+") as userstats:
             stats_json = loads(userstats.read())
-            if (str(user_id) in stats_json):
+            if str(user_id) in stats_json:
                 return True
             # Create new user
             stats_json[str(user_id)] = {
-                "name": name, "personal_best": {}, "progression": {}
+                "name": name,
+                "personal_best": {},
+                "progression": {},
             }
             # update stats
             userstats.seek(0)
@@ -81,13 +104,15 @@ class Bulker:
             userstats.truncate()
         return False
 
-    def get_pb(self, member: Union[Member, User], exercise: str) -> Union[Dict[str, Any], None]:
+    def get_pb(
+        self, member: Union[Member, User], exercise: str
+    ) -> Union[Dict[str, Any], None]:
         """Returns dictionary if user is else None"""
         # Add user to db if not in db
         if not self.check_db_for(member.id, member.global_name):
             # User not in db, fat prick
             return None
-        
+
         data = None
         with open("resources/userstats.json", "r") as user_stats:
             stats_json = loads(user_stats.read())
@@ -95,26 +120,73 @@ class Bulker:
             if exercise in user_data["personal_best"]:
                 data = user_data["personal_best"][exercise]
         return data
-    
+
+    def has_channel(self, member: Member) -> bool:
+        ret = False
+        with open("resources/userbulkchannels.json", "r") as channels:
+            users = loads(channels.read())
+            ret = str(member.id) in users
+        return ret
+
+    def add_channel(self, member: Member, channel_id: int):
+        """Assumes user has no channel"""
+        with open("resources/userbulkchannels.json", "r+") as channels:
+            users = loads(channels.read())
+            users[str(member.id)] = channel_id
+            # update file
+            channels.seek(0)
+            channels.write(dumps(users))
+            # If the new file is shorter than the old one
+            channels.truncate()
+
+
 BULKER = Bulker()
+
 
 class FennsBulking(commands.Cog):
     def __init__(self, bot: FennsBot) -> None:
         super().__init__()
         self.bot = bot
+        self.bulkers_guild_id = 1172288447592022146
+        self.user_channels_category_id = 1172359070917853196
 
-    async def bulk_set_autocomplete(self, interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+    async def bulk_set_autocomplete(
+        self, interaction: Interaction, current: str
+    ) -> List[app_commands.Choice[str]]:
         workout = interaction.namespace.workout
         # Filters out options that don't start with 'current'
-        autocomplete = list(map(lambda exercise: Choice(name=exercise["name"], value=exercise["name"]), filter(lambda exercise: True if current == exercise["name"][:len(current)] else False, BULKER.exercises()[workout])))[:25]
+        autocomplete = list(
+            map(
+                lambda exercise: Choice(name=exercise["name"], value=exercise["name"]),
+                filter(
+                    lambda exercise: True
+                    if current == exercise["name"][: len(current)]
+                    else False,
+                    BULKER.exercises()[workout],
+                ),
+            )
+        )[:25]
         return autocomplete
 
-
     @app_commands.command(name="set", description="Records an exercise")
-    @app_commands.describe(workout="Class of exercise", exercise="Exersize to update", reps="Number of reps per set", weight="Weight amount", note="Optional information for entry")
+    @app_commands.describe(
+        workout="Class of exercise",
+        exercise="Exersize to update",
+        reps="Number of reps per set",
+        weight="Weight amount",
+        note="Optional information for entry",
+    )
     @app_commands.choices(workout=BULKER.workouts())
     @app_commands.autocomplete(exercise=bulk_set_autocomplete)
-    async def add_bulk_set(self, interaction: Interaction, workout: Choice[str], exercise: str, reps: int, weight: int, note: Union[str, None]):
+    async def add_bulk_set(
+        self,
+        interaction: Interaction,
+        workout: Choice[str],
+        exercise: str,
+        reps: int,
+        weight: int,
+        note: Union[str, None],
+    ):
         """Records an exercise the user has completed in the database"""
         # BULKER.exercises()[workout.name] is a list of choices
         if exercise not in [exer["name"] for exer in BULKER.exercises()[workout.name]]:
@@ -122,18 +194,30 @@ class FennsBulking(commands.Cog):
             await self.bot.send_failure(interaction, "set", exercise)
             return
 
-        record = BULKER.update_user_set(interaction.user, exercise, reps, weight, note=note if type(note) == str else "")
+        record = BULKER.update_user_set(
+            interaction.user,
+            exercise,
+            reps,
+            weight,
+            note=note if type(note) == str else "",
+        )
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
         embed.set_author(name="Recorded Set!", icon_url=interaction.user.avatar)
-        embed.add_field(name=exercise.capitalize(), value=f"Reps: {reps}\nlbs: {weight}")
+        embed.add_field(
+            name=exercise.capitalize(), value=f"Reps: {reps}\nlbs: {weight}"
+        )
         if note != None:
             embed.description = f'"*{note}*"'
         if record:
-            embed.set_footer(text=f"🎉 {interaction.user.display_name} set a new personal best! 🎉")
+            embed.set_footer(
+                text=f"🎉 {interaction.user.display_name} set a new personal best! 🎉"
+            )
         await interaction.response.send_message(embed=embed, file=png)
 
-    @app_commands.command(name="list", description="Lists exercises part of a given workout")
+    @app_commands.command(
+        name="list", description="Lists exercises part of a given workout"
+    )
     @app_commands.describe(workout="Class of exercise")
     @app_commands.choices(workout=BULKER.workouts())
     async def list_bulks(self, interaction: Interaction, workout: Choice[str]):
@@ -158,7 +242,17 @@ class FennsBulking(commands.Cog):
         for exercises in BULKER.exercises().values():
             all_exercises += exercises
         # Filters out options that don't start with 'current'
-        autocomplete = list(map(lambda exercise: Choice(name=exercise["name"], value=exercise["name"]), filter(lambda exercise: True if current == exercise["name"][:len(current)] else False, all_exercises)))[:25]
+        autocomplete = list(
+            map(
+                lambda exercise: Choice(name=exercise["name"], value=exercise["name"]),
+                filter(
+                    lambda exercise: True
+                    if current == exercise["name"][: len(current)]
+                    else False,
+                    all_exercises,
+                ),
+            )
+        )[:25]
         return autocomplete
 
     @app_commands.command(name="best", description="List personal best")
@@ -184,17 +278,40 @@ class FennsBulking(commands.Cog):
             embed.add_field(name="No records found!", value="Lmao!")
         else:
             # User has record
-            info = f"Date: {best['date']}\nReps: {best['reps']}\nWeight: {best['weight']}"
+            info = (
+                f"Date: {best['date']}\nReps: {best['reps']}\nWeight: {best['weight']}"
+            )
             if best["note"] != "":
                 info += f"\nAuthor's Note: *{best['note']}*"
             embed.add_field(name="__Info__", value=info)
 
         await interaction.response.send_message(embed=embed, file=png)
-            
-    @commands.Cog.listener(name="on_reaction_add")
-    async def create_user_bulk_channel(self, reaction: Reaction, user: Union[Member, User]):
+
+    @commands.Cog.listener(name="on_raw_reaction_add")
+    async def create_user_bulk_channel(self, payload: RawReactionActionEvent):
         # 'user' will be type Member if in guild, User in DMs
-        pass
+        guild: Guild = self.bot.get_guild(self.bulkers_guild_id)
+        if (
+            payload.message_id == self.bot.reaction_listeners[0]
+            and payload.event_type == "REACTION_ADD"
+        ):
+            if not BULKER.has_channel(payload.member):
+                permissions = {
+                    payload.member: PermissionOverwrite(send_messages=True),
+                    guild.default_role: PermissionOverwrite(send_messages=False),
+                }
+                new_channel = await guild.create_text_channel(
+                    f"Mog Log {payload.member.display_name}",
+                    reason="User requested their channel",
+                    category=guild.get_channel(self.user_channels_category_id),
+                    overwrites=permissions,
+                    # Tightrosspants teehee
+                    nsfw=True if payload.member.id == 498175715993190421 else False,
+                )
+                BULKER.add_channel(
+                    payload.member,
+                    new_channel.id
+                )
 
 
 async def setup(bot: commands.Bot):

@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from asyncio import run as async_run
 from os import listdir, environ as os_env
-from typing import Tuple
+from typing import Tuple, Union
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +23,8 @@ class FennsBot(commands.Bot):
         super().__init__(intents=intents, command_prefix="f!")
         # generate a dict of filename: extension for fenn's icon files
         self.icon_files = {fname[0].lower(): fname[1] for fname in list(map(lambda f: f.split("."), listdir("resources/thumbnails")))}
+        self.owner_id = 283677434476363776
+        self.reaction_listeners = [1173735486578245744] # Message id's the bot should listen to
 
     async def on_ready(self):
         print(f"{self.user} is up and running!")
@@ -50,11 +52,15 @@ class FennsBot(commands.Bot):
         embed.set_thumbnail(url=f"attachment://{icon.name.lower()}.{file_type}")
         return embed, discord_file
     
-    async def send_failure(self, interaction: discord.Interaction, failed_command: str, failed_parameter: str):
+    async def send_failure(self, interaction: discord.Interaction, message: str = None, failed_command: str = None, failed_parameter: str = None):
         embed, gif = self.fenns_embed(FennsIcon.ERROR)
         embed.title = "Failed!"
-        embed.add_field(name="Command   |", value=f"Ran='/{failed_command}'")
-        embed.add_field(name="Error", value=f"Param: **>>**{failed_parameter}**<<**")
+        if message != None:
+            embed.add_field(name="What went wrong?", value=f"{message}")
+        if failed_command != None:
+            embed.add_field(name="Command   |", value=f"Ran='/{failed_command}'")
+        if failed_parameter != None:
+            embed.add_field(name="Error", value=f"Param: **>>**{failed_parameter}**<<**")
         embed.set_footer(text="*Try to read the damn options, wouldya?!*")
         embed.color = discord.Colour.red()
         # Sending a gif can take time, so we need to defer then send it
