@@ -1,0 +1,129 @@
+{
+	"workouts":{
+		"legs":[
+			{
+				"name":"back squat",
+				"sets":4,
+				"reps":5
+			},
+			{
+				"name":"deadlift",
+				"sets":2,
+				"reps":8
+			},
+			{
+				"name":"barbell hip thrust",
+				"sets":3,
+				"reps":12,
+				"meta":"10-12 Reps"
+			},
+			{
+				"name":"dumbbell walking lunge",
+				"sets":2,
+				"reps":20,
+				"meta":"20 Each Leg"
+			},
+			{
+				"name":"leg extension",
+				"sets":3,
+				"reps":15
+			},
+			{
+				"name":"seated leg curl",
+				"sets":3,
+				"reps":15
+			},
+			{
+				"name":"standing calf raise",
+				"sets":3,
+				"reps":10
+			}
+		],
+		"push":[
+			{
+				"name":"barbell bench press",
+				"sets":3,
+				"reps":4
+			},
+			{
+				"name":"dumbbell seated shoulder press",
+				"sets":3,
+				"reps":10,
+				"meta":"8-10 Reps"
+			},
+			{
+				"name":"weighted dip",
+				"sets":3,
+				"reps":10,
+				"meta":"6-10 Reps"
+			},
+			{
+				"name":"low-to-high cable flye",
+				"sets":3,
+				"reps":15,
+				"meta":"12-15 Reps"
+			},
+			{
+				"name":"dumbbell isolateral skull crusher",
+				"sets":3,
+				"reps":12
+			},
+			{
+				"name":"dumbbell lateral raise",
+				"sets":3,
+				"reps":15
+			},
+			{
+				"name":"AB wheel rollout",
+				"sets":3,
+				"reps":6
+			}
+		],
+		"pull":[
+			{
+				"name":"lat pull-in",
+				"sets":2,
+				"reps":20,
+				"meta":"1 Arm, 15-20 Reps"
+			},
+			{
+				"name":"pull-up",
+				"sets":4,
+				"reps":8,
+				"meta":"6-8 Reps"
+			},
+			{
+				"name":"pendlay row",
+				"sets":3,
+				"reps":10,
+				"meta":"8-10 Reps"
+			},
+			{
+				"name":"machine high row",
+				"sets":3,
+				"reps":12,
+				"meta":"10-12 Reps"
+			},
+			{
+				"name":"seated face pull",
+				"sets":3,
+				"reps":20
+			},
+			{
+				"name":"reverse grip bar curl",
+				"sets":3,
+				"reps":20
+			},
+			{
+				"name":"supinated bar curl",
+				"sets":3,
+				"reps":15
+			},
+			{
+				"name":"dumbbell preacher curl",
+				"sets":3,
+				"reps":12
+			}
+		]
+	}
+}
