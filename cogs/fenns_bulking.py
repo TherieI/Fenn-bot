@@ -289,7 +289,6 @@ class FennsBulking(commands.Cog):
     @commands.Cog.listener(name="on_raw_reaction_add")
     async def create_user_bulk_channel(self, payload: RawReactionActionEvent):
         # 'user' will be type Member if in guild, User in DMs
-        print(guild.roles)
         guild: Guild = self.bot.get_guild(self.bulkers_guild_id)
         if (
             payload.message_id == self.bot.reaction_listeners[0]
@@ -313,10 +312,9 @@ class FennsBulking(commands.Cog):
                     new_channel.id
                 )
                 # Give user bulker role
-                print(guild.roles)
-                #await payload.member.add_roles()
+                bulker = [r for r in guild.roles if r.name == "Bulker"][0]
+                await payload.member.add_roles(bulker)
                 
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(FennsBulking(bot))
