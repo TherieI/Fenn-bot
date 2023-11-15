@@ -255,9 +255,10 @@ class FennsBulking(commands.Cog):
         return autocomplete
 
     @app_commands.command(name="best", description="List personal best")
-    @app_commands.describe(exercise="Name of exercise")
+    @app_commands.describe(exercise="Name of exercise", member="Check a specific member's stats")
     @app_commands.autocomplete(exercise=pb_autocompete)
-    async def send_pb(self, interaction: Interaction, exercise: str):
+    async def send_pb(self, interaction: Interaction, exercise: str, member: Union[Member, None]):
+        target_member = interaction.user if member == None else member
         # Compile all exercises
         all_exercises = []
         for exercises in BULKER.exercises().values():
@@ -268,9 +269,9 @@ class FennsBulking(commands.Cog):
             await self.bot.send_failure(interaction, "best", exercise)
             return
         # Get pb
-        best = BULKER.get_pb(interaction.user, exercise)
+        best = BULKER.get_pb(target_member, exercise)
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        embed.set_author(name="Personal Best!", icon_url=interaction.user.avatar)
+        embed.set_author(name="Personal Best!", icon_url=target_member.avatar)
         embed.title = exercise.capitalize()
         if best == None:
             # No record! User is chungus!
@@ -314,7 +315,22 @@ class FennsBulking(commands.Cog):
                 # Give user bulker role
                 bulker = [r for r in guild.roles if r.name == "Bulker"][0]
                 await payload.member.add_roles(bulker)
-                
+    
+    @app_commands.command(name="leaderboard", description="List bulking leaderboard")
+    @app_commands.describe(workout="Name of workout")
+    @app_commands.choices(workout=BULKER.workouts())
+    async def leaderboard(self, interaction: Interaction, workout: Choice[str]):
+        # Embed generation
+        embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
+        embed.title = f"Leaderboards: {workout.name.capitalize()}"
+        for exercise in BULKER.exercises()[workout.name]:
+            top_3 = BULKER.leaderboard()
+            info = f"**Sets**: {exercise['sets']}.\n**Reps**: {exercise['reps']}."
+            embed.add_field(name=f"__{exercise['name'].capitalize()}__", value=info)
+        embed.color = Colour.purple()
+        # response might take longer to send
+        await interaction.response.defer()
+        await interaction.followup.send(embed=embed, file=png)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(FennsBulking(bot))
