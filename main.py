@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from asyncio import run as async_run
+from asyncio import run as async_run, sleep
 from os import listdir, environ as os_env
 from typing import Tuple, Union
 
@@ -25,11 +25,12 @@ class FennsBot(commands.Bot):
         self.icon_files = {fname[0].lower(): fname[1] for fname in list(map(lambda f: f.split("."), listdir("resources/thumbnails")))}
         self.owner_id = 283677434476363776
         self.reaction_listeners = [1173735486578245744] # Message id's the bot should listen to
+        # self.openai_client = AsyncOpenAI()
 
     async def on_ready(self):
         print(f"{self.user} is up and running!")
 
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if not message.author.bot:
             await self.process_commands(message)
 
