@@ -23,7 +23,7 @@ class FennsHangouts(commands.Cog):
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
         if message.guild.id == self.fenns_hangouts_guild_id:
-            react_chance = self.fenns_message_react_chance(len(message.content))
+            react_chance = self.fenns_message_react_chance(len(message.content.split(" ")))
             print(f"{react_chance=}")
             if message.author.id == self.bot.owner_id or random() <= react_chance / 5:
                 # Give gab chad emote (or chat a small chance of these emotes)
