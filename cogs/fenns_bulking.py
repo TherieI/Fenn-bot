@@ -138,9 +138,24 @@ class Bulker:
             # If the new file is shorter than the old one
             channels.truncate()
 
-
+    def leaderboard(self, server: Guild, exercise: str, entries: int = 3) -> Dict[Member, Any]:
+        # print(server.members)
+        server_members = server.members
+        top_records = {}
+        with open("resources/userstats.json", "r") as channels:
+            users = loads(channels.read())
+            for user_id in users.keys():
+                user = list(filter(lambda member: member.id == int(user_id), server_members))
+                if len(user) == 0:
+                    # No user found (Example user will not be found)
+                    continue
+                user = user[0]
+                if exercise in users[user_id]["personal_best"]:
+                    top_records[user] = users[user_id]["personal_best"][exercise] 
+        top_records = dict(list(sorted(top_records.items(), key=lambda item: item[1]["reps"] * item[1]["weight"], reverse=True))[:entries])
+        return top_records
+        
 BULKER = Bulker()
-
 
 class FennsBulking(commands.Cog):
     def __init__(self, bot: FennsBot) -> None:
@@ -322,12 +337,28 @@ class FennsBulking(commands.Cog):
     async def leaderboard(self, interaction: Interaction, workout: Choice[str]):
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        embed.title = f"Leaderboards: {workout.name.capitalize()}"
+        workouts = {
+            "push":":muscle:",
+            "pull":":raised_hands:",
+            "legs":":leg:"
+        }
+        embed.title = f"Leaderboard | {workouts[workout.name]} | {workout.name.capitalize()}"
         for exercise in BULKER.exercises()[workout.name]:
-            top_3 = BULKER.leaderboard()
-            info = f"**Sets**: {exercise['sets']}.\n**Reps**: {exercise['reps']}."
-            embed.add_field(name=f"__{exercise['name'].capitalize()}__", value=info)
-        embed.color = Colour.purple()
+            exercise = exercise["name"]
+            info = ""   
+            # Build top members for exercise
+            emojis = {
+                1: ":first_place:",
+                2: ":second_place:",
+                3: ":third_place:"
+            }
+            for i, (member, stats) in enumerate(BULKER.leaderboard(self.bot.get_guild(self.bulkers_guild_id), exercise).items()):
+                info += f"{emojis[i + 1]} {member.display_name}\n- <a:mc_clock:1177336089749508147> *{stats['date']}*\n- <:reps:1177346322240647198> *x **{stats['reps']}***\n- <:weight:1177345354342072412> ***{stats['weight']}** lbs*\n"
+                if stats["note"] != "":
+                    info += f"> *{stats['note']}*\n"
+                info += "\n"
+            embed.add_field(name=f"| **{exercise.capitalize()}**", value=info)
+        
         # response might take longer to send
         await interaction.response.defer()
         await interaction.followup.send(embed=embed, file=png)
