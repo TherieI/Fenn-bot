@@ -334,7 +334,7 @@ class FennsBulking(commands.Cog):
     @app_commands.command(name="leaderboard", description="List bulking leaderboard")
     @app_commands.describe(workout="Name of workout")
     @app_commands.choices(workout=BULKER.workouts())
-    async def leaderboard(self, interaction: Interaction, workout: Choice[str]):
+    async def leaderboard(self, interaction: Interaction, workout: Choice[str], verbose: Union[bool, None]):
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
         workouts = {
@@ -353,10 +353,16 @@ class FennsBulking(commands.Cog):
                 3: ":third_place:"
             }
             for i, (member, stats) in enumerate(BULKER.leaderboard(self.bot.get_guild(self.bulkers_guild_id), exercise).items()):
-                info += f"{emojis[i + 1]} {member.display_name}\n- <a:mc_clock:1177336089749508147> *{stats['date']}*\n- <:reps:1177346322240647198> *x **{stats['reps']}***\n- <:weight:1177345354342072412> ***{stats['weight']}** lbs*\n"
-                if stats["note"] != "":
-                    info += f"> *{stats['note']}*\n"
-                info += "\n"
+                info += f"{emojis[i + 1]} {member.display_name}\n"
+                if verbose:
+                    # Display all info
+                    info += f"- <a:mc_clock:1177336089749508147> *{stats['date']}*\n- <:reps:1177346322240647198> *× **{stats['reps']}***\n- <:weight:1177345354342072412> ***{stats['weight']}** lbs*\n"
+                    if stats["note"] != "":
+                        info += f"> *{stats['note']}*\n"
+                    info += "\n"
+                else:
+                    # Display most info
+                    info += f"- <:weight:1177345354342072412> ***{stats['reps']}** × **{stats['weight']}** lbs* \n"
             embed.add_field(name=f"| **{exercise.capitalize()}**", value=info)
         
         # response might take longer to send
