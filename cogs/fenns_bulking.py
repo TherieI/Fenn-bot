@@ -1,13 +1,20 @@
 from discord.ext import commands
-from discord import app_commands, Interaction, Guild, Object as discord_obj
+from discord import app_commands, Interaction, Guild
 from discord import Member, User, Colour, RawReactionActionEvent, PermissionOverwrite
 from discord.app_commands import Choice
+from discord.ui import View
 from json import loads, dumps
 from typing import List, Union, Dict, Any
 from main import FennsIcon, FennsBot
 from datetime import datetime
+from cogs.general import EmbedBook
 
 """Fenn's Bulking Server Commands"""
+
+WEIGHT_EMOJI = "<:weight:1177345354342072412>"
+REP_EMOJI = "<:reps:1177346322240647198>"
+CLOCK_EMOJI = "<a:mc_clock:1177336089749508147>"
+REPS = "ᴿᴱᴾ"
 
 class Bulker:
     def __init__(self) -> None:
@@ -152,8 +159,22 @@ class Bulker:
                 user = user[0]
                 if exercise in users[user_id]["personal_best"]:
                     top_records[user] = users[user_id]["personal_best"][exercise] 
+        # Sort dict in greatest to least based on reps * weight
         top_records = dict(list(sorted(top_records.items(), key=lambda item: item[1]["reps"] * item[1]["weight"], reverse=True))[:entries])
         return top_records
+    
+    def history_of(self, member: Member, days_limit: int = 20) -> Dict[str, Dict[str, Dict[str, Union[str, int]]]]:
+        self.check_db_for(member.id, member.name)
+        history = {}
+        with open("resources/userstats.json", "r") as channels:
+            users = loads(channels.read())
+            # History of last days_limit days
+            dates = list(users[str(member.id)]["progression"].items())[:days_limit]
+            dates.reverse()
+            history = dict(dates)
+        return history
+
+
         
 BULKER = Bulker()
 
@@ -217,9 +238,9 @@ class FennsBulking(commands.Cog):
         )
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        embed.set_author(name="Recorded Set!", icon_url=interaction.user.avatar)
+        embed.set_author(name="Recorded Set!", icon_url=interaction.user.display_avatar)
         embed.add_field(
-            name=exercise.capitalize(), value=f"Reps: {reps}\nlbs: {weight}"
+            name=exercise.capitalize(), value=f"**{reps}**{REPS}\n{WEIGHT_EMOJI} **{weight}**lbs"
         )
         if note != None:
             embed.description = f'"*{note}*"'
@@ -286,7 +307,7 @@ class FennsBulking(commands.Cog):
         # Get pb
         best = BULKER.get_pb(target_member, exercise)
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        embed.set_author(name="Personal Best!", icon_url=target_member.avatar)
+        embed.set_author(name="Personal Best!", icon_url=target_member.display_avatar)
         embed.title = exercise.capitalize()
         if best == None:
             # No record! User is chungus!
@@ -342,7 +363,7 @@ class FennsBulking(commands.Cog):
             "pull":":raised_hands:",
             "legs":":leg:"
         }
-        embed.title = f"Leaderboard | {workouts[workout.name]} | {workout.name.capitalize()}"
+        embed.title = f"Leaderboard「 {workouts[workout.name]} 」{workout.name.capitalize()}"
         for exercise in BULKER.exercises()[workout.name]:
             exercise = exercise["name"]
             info = ""   
@@ -353,21 +374,35 @@ class FennsBulking(commands.Cog):
                 3: ":third_place:"
             }
             for i, (member, stats) in enumerate(BULKER.leaderboard(self.bot.get_guild(self.bulkers_guild_id), exercise).items()):
-                info += f"{emojis[i + 1]} {member.display_name}\n"
+                info += f"{emojis[i + 1]} †{member.display_name}†\n"
                 if verbose:
                     # Display all info
-                    info += f"- <a:mc_clock:1177336089749508147> *{stats['date']}*\n- <:reps:1177346322240647198> *× **{stats['reps']}***\n- <:weight:1177345354342072412> ***{stats['weight']}** lbs*\n"
+                    info += f"- {CLOCK_EMOJI} *{stats['date']}*\n- {REP_EMOJI} *× **{stats['reps']}**{REPS}*\n- {WEIGHT_EMOJI} ***{stats['weight']}** lbs*\n"
                     if stats["note"] != "":
                         info += f"> *{stats['note']}*\n"
                     info += "\n"
                 else:
                     # Display most info
-                    info += f"- <:weight:1177345354342072412> ***{stats['reps']}** × **{stats['weight']}** lbs* \n"
-            embed.add_field(name=f"| **{exercise.capitalize()}**", value=info)
-        
+                    info += f"- {WEIGHT_EMOJI} ***{stats['reps']}**{REPS} × **{stats['weight']}** lbs*\n"
+            embed.add_field(name=f"**{exercise.capitalize()}**", value=info)
         # response might take longer to send
         await interaction.response.defer()
         await interaction.followup.send(embed=embed, file=png)
+
+    @app_commands.command(name="history", description="View user history")
+    async def history(self, interaction: Interaction):
+        embeds = []
+        for date, exercises in BULKER.history_of(interaction.user).items():
+            embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
+            embed.set_author(name=date, icon_url=interaction.user.display_avatar)
+            for exercise, stats in exercises.items():
+                info = f"- {WEIGHT_EMOJI}***{stats['reps']}**{REPS} × **{stats['weight']}** lbs*\n"
+                if stats["note"] != "":
+                    info += f"> *{stats['note']}*\n"
+                info += "\n"
+                embed.add_field(name=exercise.capitalize(), value=info)
+            embeds.append(embed)
+        await interaction.response.send_message(embed=embeds[0], file=png, view=EmbedBook(embeds))
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(FennsBulking(bot))

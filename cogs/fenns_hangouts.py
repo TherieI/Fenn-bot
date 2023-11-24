@@ -18,18 +18,28 @@ class FennsHangouts(commands.Cog):
         self.fenns_hangouts_guild_id = 987495278892433480
 
     def fenns_message_react_chance(self, message_len: int) -> float:
-        return 1/(8 + exp(-0.1 * message_len + 8.4)) + 0.03
+        return 1 / (8 + exp(-0.1 * message_len + 8.4)) + 0.03
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
         if message.guild.id == self.fenns_hangouts_guild_id:
-            react_chance = self.fenns_message_react_chance(len(message.content.split(" ")))
+            react_chance = self.fenns_message_react_chance(
+                len(message.content.split(" "))
+            )
             print(f"{react_chance=}")
             if message.author.id == self.bot.owner_id or random() <= react_chance / 5:
                 # Give gab chad emote (or chat a small chance of these emotes)
-                emotes = ["<:nave:613525321420898339>", "<:noovin:1094798214294683718>", "<:Pog:842595542496182312>", "<:yan_left_1:843635990785949707>", "<:yan_left_2:843636001838596097>", "<:yan_right_1:843636015012773909>", "<:yan_right_2:843636023451713547>"]
+                emotes = [
+                    "<:nave:613525321420898339>",
+                    "<:noovin:1094798214294683718>",
+                    "<:Pog:842595542496182312>",
+                    "<:yan_left_1:843635990785949707>",
+                    "<:yan_left_2:843636001838596097>",
+                    "<:yan_right_1:843636015012773909>",
+                    "<:yan_right_2:843636023451713547>",
+                ]
             else:
-                emotes = list(message.guild.emojis) + ["💀"] * 2
+                emotes = list(message.guild.emojis) + [":thumbsup:"] + ["💀"] * 2
             if len(message.attachments) >= 1 and random() <= 0.15:
                 # React to (hard) image
                 emote = choice(emotes)
