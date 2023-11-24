@@ -240,7 +240,7 @@ class FennsBulking(commands.Cog):
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
         embed.set_author(name="Recorded Set!", icon_url=interaction.user.display_avatar)
         embed.add_field(
-            name=exercise.capitalize(), value=f"**{reps}**{REPS}\n{WEIGHT_EMOJI} **{weight}**lbs"
+            name=exercise.capitalize(), value=f"{REP_EMOJI} **{reps}**{REPS}\n{WEIGHT_EMOJI} **{weight}**lbs"
         )
         if note != None:
             embed.description = f'"*{note}*"'
