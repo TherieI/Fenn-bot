@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord import FFmpegPCMAudio, Message
+from discord import FFmpegPCMAudio, Message, Member, VoiceState
 from asyncio import sleep
 from random import randint, random, choice
 from main import FennsBot
@@ -7,7 +7,7 @@ from math import exp
 
 audio = "resources/vine_boom.mp3"
 BOOM_DELAY = 3.0  # vine boom has a chance of occuring every 3 seconds
-BOOM_FACTOR = 30  # 1/X Chance of playing the vine boom
+BOOM_FACTOR = 20  # 1/X Chance of playing the vine boom
 
 
 class FennsHangouts(commands.Cog):
@@ -53,8 +53,13 @@ class FennsHangouts(commands.Cog):
                 await message.add_reaction(emote)
 
     @commands.Cog.listener(name="on_voice_state_update")
-    async def vine_boom(self, member, before, after):
-        if member == self.bot.user:
+    async def vine_boom(self, member: Member, before: VoiceState, after: VoiceState):
+        # print(f"{member=}\n{before=}\n{after=}")
+        if member.bot:
+            if after.channel == None and self.current_voice_channel != None:
+                # Fenn was disconnected by user
+                await self.current_voice_channel.disconnect(force=True)
+                self.current_voice_channel = None
             return
         if after.channel:
             # Joined a channel

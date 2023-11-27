@@ -22,9 +22,11 @@ class Bulker:
         self._exercises = {}
         self.load_exercises()
 
+    @property
     def workouts(self):
         return self._workouts
 
+    @property
     def exercises(self):
         return self._exercises
 
@@ -197,7 +199,7 @@ class FennsBulking(commands.Cog):
                     lambda exercise: True
                     if current == exercise["name"][: len(current)]
                     else False,
-                    BULKER.exercises()[workout],
+                    BULKER.exercises[workout],
                 ),
             )
         )[:25]
@@ -211,7 +213,7 @@ class FennsBulking(commands.Cog):
         weight="Weight amount",
         note="Optional information for entry",
     )
-    @app_commands.choices(workout=BULKER.workouts())
+    @app_commands.choices(workout=BULKER.workouts)
     @app_commands.autocomplete(exercise=bulk_set_autocomplete)
     async def add_bulk_set(
         self,
@@ -224,7 +226,7 @@ class FennsBulking(commands.Cog):
     ):
         """Records an exercise the user has completed in the database"""
         # BULKER.exercises()[workout.name] is a list of choices
-        if exercise not in [exer["name"] for exer in BULKER.exercises()[workout.name]]:
+        if exercise not in [exer["name"] for exer in BULKER.exercises[workout.name]]:
             # Invalid exercise
             await self.bot.send_failure(interaction, "set", exercise)
             return
@@ -240,7 +242,7 @@ class FennsBulking(commands.Cog):
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
         embed.set_author(name="Recorded Set!", icon_url=interaction.user.display_avatar)
         embed.add_field(
-            name=exercise.capitalize(), value=f"{REP_EMOJI} **{reps}**{REPS}\n{WEIGHT_EMOJI} **{weight}**lbs"
+            name=exercise.capitalize(), value=f"*{REP_EMOJI} **{reps}**{REPS}*\n{WEIGHT_EMOJI} ***{weight}** lbs*"
         )
         if note != None:
             embed.description = f'"*{note}*"'
@@ -254,18 +256,23 @@ class FennsBulking(commands.Cog):
         name="list", description="Lists exercises part of a given workout"
     )
     @app_commands.describe(workout="Class of exercise")
-    @app_commands.choices(workout=BULKER.workouts())
+    @app_commands.choices(workout=BULKER.workouts)
     async def list_bulks(self, interaction: Interaction, workout: Choice[str]):
         """Lists exercises part of a given workout."""
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        embed.title = f"Workouts: {workout.name.capitalize()}"
-        for exercise in BULKER.exercises()[workout.name]:
-            info = f"**Sets**: {exercise['sets']}.\n**Reps**: {exercise['reps']}."
+        workouts = {
+            "push":":muscle:",
+            "pull":":raised_hands:",
+            "legs":":leg:"
+        }
+        embed.title = f"Exercises「 {workouts[workout.name]} 」{workout.name.capitalize()}"
+        for exercise in BULKER.exercises[workout.name]:
+            info = f":dart: *sets*: **{exercise['sets']}**\n{REP_EMOJI} **{exercise['reps']}**{REPS}"
             if "meta" in exercise:
                 # Add additional metadata
-                info += f"\n**Extra info**: __{exercise['meta']}__"
-            embed.add_field(name=f"__{exercise['name'].capitalize()}__", value=info)
+                info += f"\n**Extra info**: *{exercise['meta']}*."
+            embed.add_field(name=f"{exercise['name'].capitalize()}", value=info)
         embed.color = Colour.purple()
         # response might take longer to send
         await interaction.response.defer()
@@ -274,7 +281,7 @@ class FennsBulking(commands.Cog):
     async def pb_autocompete(self, interaction: Interaction, current: str):
         # Compile all exercises
         all_exercises = []
-        for exercises in BULKER.exercises().values():
+        for exercises in BULKER.exercises.values():
             all_exercises += exercises
         # Filters out options that don't start with 'current'
         autocomplete = list(
@@ -297,7 +304,7 @@ class FennsBulking(commands.Cog):
         target_member = interaction.user if member == None else member
         # Compile all exercises
         all_exercises = []
-        for exercises in BULKER.exercises().values():
+        for exercises in BULKER.exercises.values():
             all_exercises += [exercise["name"] for exercise in exercises]
         # Check if exercise is valid
         if exercise not in all_exercises:
@@ -315,7 +322,7 @@ class FennsBulking(commands.Cog):
         else:
             # User has record
             info = (
-                f"Date: {best['date']}\nReps: {best['reps']}\nWeight: {best['weight']}"
+                f"{CLOCK_EMOJI} {best['date']}\n{REP_EMOJI} {best['reps']}{REPS}\n{WEIGHT_EMOJI} {best['weight']}"
             )
             if best["note"] != "":
                 info += f"\nAuthor's Note: *{best['note']}*"
@@ -354,7 +361,7 @@ class FennsBulking(commands.Cog):
     
     @app_commands.command(name="leaderboard", description="List bulking leaderboard")
     @app_commands.describe(workout="Name of workout")
-    @app_commands.choices(workout=BULKER.workouts())
+    @app_commands.choices(workout=BULKER.workouts)
     async def leaderboard(self, interaction: Interaction, workout: Choice[str], verbose: Union[bool, None]):
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
@@ -364,7 +371,7 @@ class FennsBulking(commands.Cog):
             "legs":":leg:"
         }
         embed.title = f"Leaderboard「 {workouts[workout.name]} 」{workout.name.capitalize()}"
-        for exercise in BULKER.exercises()[workout.name]:
+        for exercise in BULKER.exercises[workout.name]:
             exercise = exercise["name"]
             info = ""   
             # Build top members for exercise
