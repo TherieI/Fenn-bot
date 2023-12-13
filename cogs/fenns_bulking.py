@@ -1,8 +1,9 @@
 from discord.ext import commands
 from discord import app_commands, Interaction, Guild
-from discord import Member, User, Colour, RawReactionActionEvent, PermissionOverwrite
+from discord import Member, User, Colour, RawReactionActionEvent, PermissionOverwrite, SelectOption
 from discord.app_commands import Choice
-from discord.ui import View
+from discord.ui import Modal, TextInput, Select
+from discord import TextStyle
 from json import loads, dumps
 from typing import List, Union, Dict, Any
 from main import FennsIcon, FennsBot
@@ -15,6 +16,15 @@ WEIGHT_EMOJI = "<:weight:1177345354342072412>"
 REP_EMOJI = "<:reps:1177346322240647198>"
 CLOCK_EMOJI = "<a:mc_clock:1177336089749508147>"
 REPS = "ᴿᴱᴾ"
+
+class SetModal(Modal, title="Set"):
+    selectuh = Select(placeholder="deez", options=[SelectOption(label="test1", value="teehee1"), SelectOption(label="test2", value="teehee2")])
+    # name = TextInput(label='Question')
+    # answer = TextInput(label='Answer', style=TextStyle.paragraph)
+
+    async def on_submit(self, interaction: Interaction):
+        await interaction.response.send_message(f'Thanks for your response, {self.name}!', ephemeral=True)
+
 
 class Bulker:
     def __init__(self) -> None:
@@ -250,6 +260,7 @@ class FennsBulking(commands.Cog):
             embed.set_footer(
                 text=f"🎉 {interaction.user.display_name} set a new personal best! 🎉"
             )
+        # await interaction.response.send_modal(SetModal())
         await interaction.response.send_message(embed=embed, file=png)
 
     @app_commands.command(

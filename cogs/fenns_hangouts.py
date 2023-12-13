@@ -54,6 +54,8 @@ class FennsHangouts(commands.Cog):
 
     @commands.Cog.listener(name="on_voice_state_update")
     async def vine_boom(self, member: Member, before: VoiceState, after: VoiceState):
+        if member != None and member.guild.id != self.fenns_hangouts_guild_id:
+            return
         # print(f"{member=}\n{before=}\n{after=}")
         if member.bot:
             if after.channel == None and self.current_voice_channel != None:
