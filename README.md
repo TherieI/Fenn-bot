@@ -1,4 +1,4 @@
-# Discord bot
+# Fenn bot
 By Theriales
 
 ### Cool features
@@ -25,7 +25,37 @@ async def pb_autocompete(self, interaction: Interaction, current: str):
     return autocomplete
 ```
 
-###### Slash Commands
+###### Slash commands with Cogs
+```py
+class FennsBot(commands.Bot):
+    def __init__(self, intents):
+        super().__init__(intents=intents, command_prefix="f!")
+        # generate a dict of filename: extension for fenn's icon files
+        self.icon_files = {fname[0].lower(): fname[1] for fname in list(map(lambda f: f.split("."), listdir("resources/thumbnails")))}
+        self.owner_id = 283677434476363776
+        self.reaction_listeners = [1173735486578245744] # Message id's the bot should listen to
+        # self.openai_client = AsyncOpenAI()
+
+    async def on_ready(self):
+        print(f"{self.user} is up and running!")
+
+    async def on_message(self, message: discord.Message):
+        if not message.author.bot:
+            await self.process_commands(message)
+
+    async def setup_hook(self):
+        for cog in listdir("cogs"):
+            if cog.endswith(".py"):
+                print("Loading COG: " + cog)
+                await self.load_extension(f"cogs.{cog[:-3]}")
+
+        self.tree.copy_global_to(guild=fenns_bulking_guild)
+        cmds = await self.tree.sync()
+        for cmd in cmds:
+            print(f"AVAILABLE SLASH CMD: {cmd.name}")
+```
+
+###### Slash Command Example
 ```py
 @app_commands.command(name="set", description="Records an exercise")
 @app_commands.describe(
@@ -45,5 +75,6 @@ async def add_bulk_set(
     reps: int,
     weight: int,
     note: Union[str, None],
-):
+): 
+...
 ```
