@@ -27,14 +27,12 @@ async def pb_autocompete(self, interaction: Interaction, current: str):
 
 ###### Slash commands with Cogs
 ```py
+# ... Imports ...
+
 class FennsBot(commands.Bot):
     def __init__(self, intents):
         super().__init__(intents=intents, command_prefix="f!")
-        # generate a dict of filename: extension for fenn's icon files
-        self.icon_files = {fname[0].lower(): fname[1] for fname in list(map(lambda f: f.split("."), listdir("resources/thumbnails")))}
-        self.owner_id = 283677434476363776
-        self.reaction_listeners = [1173735486578245744] # Message id's the bot should listen to
-        # self.openai_client = AsyncOpenAI()
+        # ...
 
     async def on_ready(self):
         print(f"{self.user} is up and running!")
@@ -53,6 +51,13 @@ class FennsBot(commands.Bot):
         cmds = await self.tree.sync()
         for cmd in cmds:
             print(f"AVAILABLE SLASH CMD: {cmd.name}")
+
+async def main():
+    bot = FennsBot(intents=intents)
+    await bot.start(os_env["DISCORD_TOKEN"])
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ###### Slash Command Example
