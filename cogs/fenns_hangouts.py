@@ -1,9 +1,13 @@
 from discord.ext import commands
-from discord import FFmpegPCMAudio, Message, Member, VoiceState
+from discord import FFmpegPCMAudio, Message, Member, VoiceState, Embed
 from asyncio import sleep
 from random import randint, random, choice
 from main import FennsBot
 from math import exp
+# Reddit fetch stuff
+from asyncpraw import Reddit
+from asyncpraw.models.reddit.submission import Submission
+from requests import get 
 
 audio = "resources/vine_boom.mp3"
 BOOM_DELAY = 3.0  # vine boom has a chance of occuring every 3 seconds
@@ -16,13 +20,51 @@ class FennsHangouts(commands.Cog):
         self.bot = bot
         self.current_voice_channel = None
         self.fenns_hangouts_guild_id = 987495278892433480
+        self.reddit = reddit = Reddit(
+            client_id="HYvVKpM1Gx3OxKmjNTJ4hQ",
+            client_secret="mgnAvEHUQKiZRXxqcpmnL5MIan2MUw",
+            user_agent="Fenn's Scrapinator by u/Thendriz"
+        )
 
     def fenns_message_react_chance(self, message_len: int) -> float:
         return 1 / (8 + exp(-0.1 * message_len + 8.4)) + 0.03
+    
+    @commands.Cog.listener(name="on_ready")    
+    async def queue_meme(self):
+        # Sleep for 3-10 hours
+        await sleep(randint(3*60*60, 10*60*60))
+        guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
+        channel = choice(guild.channels)
+        
+        rgreentext = await self.reddit.subreddit("greentext")
+        top3 = [post async for post in rgreentext.new(limit=3)]
+        submission: Submission = choice(top3)
+        if "/gallery/" in submission.url:
+            # The documentation is godawful because there are so many attributes (like media_metadata) that aren't listed AS EVEN EXISTING
+            for image_meta in reversed(submission.media_metadata.values()):
+                # cry emoji
+                image_link = image_meta["p"][0]["u"].split("?")[0].replace("preview", "i")
+                await channel.send(image_link)
+        else:
+            await channel.send(submission.url)
+        await self.queue_meme()
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
-        if message.guild.id == self.fenns_hangouts_guild_id:
+        if message.guild.id == self.fenns_hangouts_guild_id and not message.author.bot:
+
+            rgreentext = await self.reddit.subreddit("greentext")
+            top3 = [post async for post in rgreentext.new(limit=3)]
+            submission: Submission = choice(top3)
+            if "/gallery/" in submission.url:
+                # The documentation is godawful because there are so many attributes (like media_metadata) that aren't listed AS EVEN EXISTING
+                for image_meta in reversed(submission.media_metadata.values()):
+                    # cry emoji
+                    image_link = image_meta["p"][0]["u"].split("?")[0].replace("preview", "i")
+                    await message.channel.send(image_link)
+            else:
+                await message.channel.send(submission)
+
             react_chance = self.fenns_message_react_chance(
                 len(message.content.split(" "))
             )
