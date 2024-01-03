@@ -3,6 +3,7 @@ from discord.ext.commands import Cog
 from typing import List, Tuple
 from main import FennsBot, FennsIcon
 
+
 class EmbedBook(ui.View):
     def __init__(self, embeds: List[Embed]):
         """len(embeds) must be greater than or equal to 1"""

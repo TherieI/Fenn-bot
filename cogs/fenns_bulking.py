@@ -1,6 +1,13 @@
 from discord.ext import commands
 from discord import app_commands, Interaction, Guild
-from discord import Member, User, Colour, RawReactionActionEvent, PermissionOverwrite, SelectOption
+from discord import (
+    Member,
+    User,
+    Colour,
+    RawReactionActionEvent,
+    PermissionOverwrite,
+    SelectOption,
+)
 from discord.app_commands import Choice
 from discord.ui import Modal, TextInput, Select
 from discord import TextStyle
@@ -17,13 +24,22 @@ REP_EMOJI = "<:reps:1177346322240647198>"
 CLOCK_EMOJI = "<a:mc_clock:1177336089749508147>"
 REPS = "ᴿᴱᴾ"
 
+
 class SetModal(Modal, title="Set"):
-    selectuh = Select(placeholder="deez", options=[SelectOption(label="test1", value="teehee1"), SelectOption(label="test2", value="teehee2")])
+    selectuh = Select(
+        placeholder="deez",
+        options=[
+            SelectOption(label="test1", value="teehee1"),
+            SelectOption(label="test2", value="teehee2"),
+        ],
+    )
     # name = TextInput(label='Question')
     # answer = TextInput(label='Answer', style=TextStyle.paragraph)
 
     async def on_submit(self, interaction: Interaction):
-        await interaction.response.send_message(f'Thanks for your response, {self.name}!', ephemeral=True)
+        await interaction.response.send_message(
+            f"Thanks for your response, {self.name}!", ephemeral=True
+        )
 
 
 class Bulker:
@@ -84,7 +100,9 @@ class Bulker:
             record = (
                 True
                 if exercise not in user_data["personal_best"]
-                or user_data["personal_best"][exercise]["weight"] * user_data["personal_best"][exercise]["reps"] < weights * reps
+                or user_data["personal_best"][exercise]["weight"]
+                * user_data["personal_best"][exercise]["reps"]
+                < weights * reps
                 else False
             )
             if record:
@@ -157,25 +175,39 @@ class Bulker:
             # If the new file is shorter than the old one
             channels.truncate()
 
-    def leaderboard(self, server: Guild, exercise: str, entries: int = 3) -> Dict[Member, Any]:
+    def leaderboard(
+        self, server: Guild, exercise: str, entries: int = 3
+    ) -> Dict[Member, Any]:
         # print(server.members)
         server_members = server.members
         top_records = {}
         with open("resources/userstats.json", "r") as channels:
             users = loads(channels.read())
             for user_id in users.keys():
-                user = list(filter(lambda member: member.id == int(user_id), server_members))
+                user = list(
+                    filter(lambda member: member.id == int(user_id), server_members)
+                )
                 if len(user) == 0:
                     # No user found (Example user will not be found)
                     continue
                 user = user[0]
                 if exercise in users[user_id]["personal_best"]:
-                    top_records[user] = users[user_id]["personal_best"][exercise] 
+                    top_records[user] = users[user_id]["personal_best"][exercise]
         # Sort dict in greatest to least based on reps * weight
-        top_records = dict(list(sorted(top_records.items(), key=lambda item: item[1]["reps"] * item[1]["weight"], reverse=True))[:entries])
+        top_records = dict(
+            list(
+                sorted(
+                    top_records.items(),
+                    key=lambda item: item[1]["reps"] * item[1]["weight"],
+                    reverse=True,
+                )
+            )[:entries]
+        )
         return top_records
-    
-    def history_of(self, member: Member, days_limit: int = 20) -> Dict[str, Dict[str, Dict[str, Union[str, int]]]]:
+
+    def history_of(
+        self, member: Member, days_limit: int = 20
+    ) -> Dict[str, Dict[str, Dict[str, Union[str, int]]]]:
         self.check_db_for(member.id, member.name)
         history = {}
         with open("resources/userstats.json", "r") as channels:
@@ -187,8 +219,8 @@ class Bulker:
         return history
 
 
-        
 BULKER = Bulker()
+
 
 class FennsBulking(commands.Cog):
     def __init__(self, bot: FennsBot) -> None:
@@ -252,7 +284,8 @@ class FennsBulking(commands.Cog):
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
         embed.set_author(name="Recorded Set!", icon_url=interaction.user.display_avatar)
         embed.add_field(
-            name=exercise.capitalize(), value=f"*{REP_EMOJI} **{reps}**{REPS}*\n{WEIGHT_EMOJI} ***{weight}** lbs*"
+            name=exercise.capitalize(),
+            value=f"*{REP_EMOJI} **{reps}**{REPS}*\n{WEIGHT_EMOJI} ***{weight}** lbs*",
         )
         if note != None:
             embed.description = f'"*{note}*"'
@@ -272,12 +305,10 @@ class FennsBulking(commands.Cog):
         """Lists exercises part of a given workout."""
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        workouts = {
-            "push":":muscle:",
-            "pull":":raised_hands:",
-            "legs":":leg:"
-        }
-        embed.title = f"Exercises「 {workouts[workout.name]} 」{workout.name.capitalize()}"
+        workouts = {"push": ":muscle:", "pull": ":raised_hands:", "legs": ":leg:"}
+        embed.title = (
+            f"Exercises「 {workouts[workout.name]} 」{workout.name.capitalize()}"
+        )
         for exercise in BULKER.exercises[workout.name]:
             info = f":dart: *sets*: **{exercise['sets']}**\n{REP_EMOJI} **{exercise['reps']}**{REPS}"
             if "meta" in exercise:
@@ -309,9 +340,13 @@ class FennsBulking(commands.Cog):
         return autocomplete
 
     @app_commands.command(name="best", description="List personal best")
-    @app_commands.describe(exercise="Name of exercise", member="Check a specific member's stats")
+    @app_commands.describe(
+        exercise="Name of exercise", member="Check a specific member's stats"
+    )
     @app_commands.autocomplete(exercise=pb_autocompete)
-    async def send_pb(self, interaction: Interaction, exercise: str, member: Union[Member, None]):
+    async def send_pb(
+        self, interaction: Interaction, exercise: str, member: Union[Member, None]
+    ):
         target_member = interaction.user if member == None else member
         # Compile all exercises
         all_exercises = []
@@ -332,9 +367,7 @@ class FennsBulking(commands.Cog):
             embed.add_field(name="No records found!", value="Lmao!")
         else:
             # User has record
-            info = (
-                f"{CLOCK_EMOJI} {best['date']}\n{REP_EMOJI} {best['reps']}{REPS}\n{WEIGHT_EMOJI} {best['weight']}"
-            )
+            info = f"{CLOCK_EMOJI} {best['date']}\n{REP_EMOJI} {best['reps']}{REPS}\n{WEIGHT_EMOJI} {best['weight']}"
             if best["note"] != "":
                 info += f"\nAuthor's Note: *{best['note']}*"
             embed.add_field(name="__Info__", value=info)
@@ -362,36 +395,33 @@ class FennsBulking(commands.Cog):
                     # Tightrosspants teehee
                     nsfw=True if payload.member.id == 498175715993190421 else False,
                 )
-                BULKER.add_channel(
-                    payload.member,
-                    new_channel.id
-                )
+                BULKER.add_channel(payload.member, new_channel.id)
                 # Give user bulker role
                 bulker = [r for r in guild.roles if r.name == "Bulker"][0]
                 await payload.member.add_roles(bulker)
-    
+
     @app_commands.command(name="leaderboard", description="List bulking leaderboard")
     @app_commands.describe(workout="Name of workout")
     @app_commands.choices(workout=BULKER.workouts)
-    async def leaderboard(self, interaction: Interaction, workout: Choice[str], verbose: Union[bool, None]):
+    async def leaderboard(
+        self, interaction: Interaction, workout: Choice[str], verbose: Union[bool, None]
+    ):
         # Embed generation
         embed, png = self.bot.fenns_embed(FennsIcon.BULKING)
-        workouts = {
-            "push":":muscle:",
-            "pull":":raised_hands:",
-            "legs":":leg:"
-        }
-        embed.title = f"Leaderboard「 {workouts[workout.name]} 」{workout.name.capitalize()}"
+        workouts = {"push": ":muscle:", "pull": ":raised_hands:", "legs": ":leg:"}
+        embed.title = (
+            f"Leaderboard「 {workouts[workout.name]} 」{workout.name.capitalize()}"
+        )
         for exercise in BULKER.exercises[workout.name]:
             exercise = exercise["name"]
-            info = ""   
+            info = ""
             # Build top members for exercise
-            emojis = {
-                1: ":first_place:",
-                2: ":second_place:",
-                3: ":third_place:"
-            }
-            for i, (member, stats) in enumerate(BULKER.leaderboard(self.bot.get_guild(self.bulkers_guild_id), exercise).items()):
+            emojis = {1: ":first_place:", 2: ":second_place:", 3: ":third_place:"}
+            for i, (member, stats) in enumerate(
+                BULKER.leaderboard(
+                    self.bot.get_guild(self.bulkers_guild_id), exercise
+                ).items()
+            ):
                 info += f"{emojis[i + 1]} †{member.display_name}†\n"
                 if verbose:
                     # Display all info
@@ -420,7 +450,10 @@ class FennsBulking(commands.Cog):
                 info += "\n"
                 embed.add_field(name=exercise.capitalize(), value=info)
             embeds.append(embed)
-        await interaction.response.send_message(embed=embeds[0], file=png, view=EmbedBook(embeds))
+        await interaction.response.send_message(
+            embed=embeds[0], file=png, view=EmbedBook(embeds)
+        )
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(FennsBulking(bot))
