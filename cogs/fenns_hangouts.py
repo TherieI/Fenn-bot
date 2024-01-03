@@ -31,6 +31,9 @@ class FennsHangouts(commands.Cog):
         return 1 / (8 + exp(-0.1 * message_len + 8.4)) + 0.03
 
     @commands.Cog.listener(name="on_ready")
+    async def on_ready(self):
+        await self.queue_meme()
+
     async def queue_meme(self):
         # Sleep for 3-10 hours
         await sleep(randint(3 * 60 * 60, 10 * 60 * 60))
