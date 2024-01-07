@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord import FFmpegPCMAudio, Message, Member, VoiceState, Embed
+from discord import FFmpegPCMAudio, Message, Member, VoiceState, TextChannel
 from asyncio import sleep
 from random import randint, random, choice
 from main import FennsBot
@@ -26,19 +26,23 @@ class FennsHangouts(commands.Cog):
             client_secret="mgnAvEHUQKiZRXxqcpmnL5MIan2MUw",
             user_agent="Fenn's Scrapinator by u/Thendriz",
         )
+        self.send_memes = True
 
     def fenns_message_react_chance(self, message_len: int) -> float:
         return 1 / (8 + exp(-0.1 * message_len + 8.4)) + 0.03
 
     @commands.Cog.listener(name="on_ready")
     async def on_ready(self):
-        await self.queue_meme()
+        while True:
+            if self.send_memes:
+                await self.queue_meme()
+                # Sleep for 3-10 hours
+                await sleep(randint(3 * 60 * 60, 10 * 60 * 60))
+
 
     async def queue_meme(self):
-        # Sleep for 3-10 hours
-        await sleep(randint(3 * 60 * 60, 10 * 60 * 60))
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
-        channel = choice(guild.channels)
+        channel = choice(filter(lambda channel: type(channel) == TextChannel, guild.channels))
 
         rgreentext = await self.reddit.subreddit("greentext")
         top3 = [post async for post in rgreentext.new(limit=3)]
@@ -53,7 +57,6 @@ class FennsHangouts(commands.Cog):
                 await channel.send(image_link)
         else:
             await channel.send(submission.url)
-        await self.queue_meme()
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
