@@ -42,7 +42,7 @@ class FennsHangouts(commands.Cog):
 
     async def queue_meme(self):
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
-        channel = choice(filter(lambda channel: type(channel) == TextChannel, guild.channels))
+        channel = choice(list(filter(lambda channel: type(channel) == TextChannel, guild.channels)))
 
         rgreentext = await self.reddit.subreddit("greentext")
         top3 = [post async for post in rgreentext.new(limit=3)]
