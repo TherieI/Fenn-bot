@@ -36,27 +36,18 @@ class FennsHangouts(commands.Cog):
     async def on_ready(self):
         while True:
             if self.send_memes:
-                await self.send_greentext_meme()
-                await self.send_animememe_meme()
-                # Sleep for 3-10 hours
-                await sleep(randint(3 * 60 * 60, 10 * 60 * 60))
+                await self.send_meme_from_subreddit("animemes")
+                await self.send_meme_from_subreddit("greentext")
+                # Sleep for 3-9 hours
+                await sleep(randint(3 * 60 * 60, 9 * 60 * 60))
 
-    async def send_greentext_meme(self):
+    async def send_meme_from_subreddit(self, subreddit: str):
         channel = self.random_text_channel()
-        rgreentext = await self.reddit.subreddit("greentext")
+        rgreentext = await self.reddit.subreddit(subreddit)
         top3 = [post async for post in rgreentext.new(limit=3)]
         submission: Submission = choice(top3)
         for url in self.urls_from_submission(submission):
             await channel.send(url)
-
-    async def send_animememe_meme(self):
-        channel = self.random_text_channel()
-        rgreentext = await self.reddit.subreddit("animememes")
-        top3 = [post async for post in rgreentext.new(limit=3)]
-        submission: Submission = choice(top3)
-        for url in self.urls_from_submission(submission):
-            await channel.send(url)
-
 
     def random_text_channel(self) -> TextChannel:
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
@@ -71,7 +62,7 @@ class FennsHangouts(commands.Cog):
             # The documentation is godawful because there are so many attributes (like media_metadata) that aren't listed AS EVEN EXISTING
             return [
                 image_meta["p"][0]["u"].split("?")[0].replace("preview", "i")
-                for image_meta in reversed(submission.media_metadata.values())
+                for image_meta in submission.media_metadata.values()
             ]
         else:
             return [submission.url]
