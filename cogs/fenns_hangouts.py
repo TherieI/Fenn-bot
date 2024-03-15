@@ -45,7 +45,7 @@ class FennsHangouts(commands.Cog):
                 await self.send_meme_from_subreddit("animemes")
                 await self.send_meme_from_subreddit("greentext", to_channel=guild.get_channel(1136533072855171093))
                 # Sleep for 3-9 hours
-                await sleep(5)
+                await sleep(randint(3 * 60 * 60, 10 * 60 * 60))
 
     async def send_meme_from_subreddit(self, subreddit: str, to_channel=None):
         # Define output channel
