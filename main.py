@@ -1,8 +1,9 @@
 import discord
 from discord.ext import commands
 from asyncio import run as async_run, sleep
-from os import listdir, environ as os_env
+import os
 from typing import Tuple, Union
+
 
 import logging
 
@@ -29,7 +30,7 @@ class FennsBot(commands.Bot):
         self.icon_files = {
             fname[0].lower(): fname[1]
             for fname in list(
-                map(lambda f: f.split("."), listdir("resources/thumbnails"))
+                map(lambda f: f.split("."), os.listdir("resources/thumbnails"))
             )
         }
         self.owner_id = 283677434476363776
@@ -46,7 +47,7 @@ class FennsBot(commands.Bot):
             await self.process_commands(message)
 
     async def setup_hook(self):
-        for cog in listdir("cogs"):
+        for cog in os.listdir("cogs"):
             if cog.endswith(".py"):
                 print("Loading COG: " + cog)
                 await self.load_extension(f"cogs.{cog[:-3]}")
@@ -96,8 +97,21 @@ class FennsBot(commands.Bot):
 
 async def main():
     bot = FennsBot(intents=intents)
-    await bot.start(os_env["DISCORD_TOKEN"])
+    await bot.start(os.env["DISCORD_TOKEN"])
 
 
 if __name__ == "__main__":
+    # Create temp file for media downloads if not already existing
+    temp = os.path.join(os.getcwd(), "temp")
+    if not os.path.exists(temp):
+        print("Folder temp not found! Creating folder...")
+        os.makedirs(temp)
+    # Remove all content (if any) in temp
+    for root, dirs, files in os.walk(temp, topdown=False):
+        for name in files:
+            print(f"Removing file: {name} in temp")
+            os.remove(os.path.join(root, name))
+        for name in dirs:
+            print(f"Removing directory: {name} in temp")
+            os.rmdir(os.path.join(root, name))
     async_run(main())

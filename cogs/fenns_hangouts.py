@@ -1,20 +1,24 @@
 from discord.ext import commands
-from discord import FFmpegPCMAudio, Message, Member, VoiceState, TextChannel
+from discord import FFmpegPCMAudio, Message, Member, VoiceState, TextChannel, File
 from asyncio import sleep
 from random import randint, random, choice
 from main import FennsBot
 from math import exp
 from typing import List
+import os
 
 # Reddit fetch stuff
 from asyncpraw import Reddit
 from asyncpraw.models.reddit.submission import Submission
-from requests import get
+from RedDownloader import RedDownloader
+
 
 audio = "resources/vine_boom.mp3"
 BOOM_DELAY = 3.0  # vine boom has a chance of occuring every 3 seconds
 BOOM_FACTOR = 20  # 1/X Chance of playing the vine boom
 
+# Fenn stores the last X amount of posts to avoid reposts
+POST_CACHE = 50
 
 class FennsHangouts(commands.Cog):
     def __init__(self, bot: FennsBot) -> None:
@@ -22,11 +26,12 @@ class FennsHangouts(commands.Cog):
         self.bot = bot
         self.current_voice_channel = None
         self.fenns_hangouts_guild_id = 987495278892433480
-        self.reddit = reddit = Reddit(
+        self.reddit = Reddit(
             client_id="HYvVKpM1Gx3OxKmjNTJ4hQ",
             client_secret="mgnAvEHUQKiZRXxqcpmnL5MIan2MUw",
             user_agent="Fenn's Scrapinator by u/Thendriz",
         )
+        self.posts = []
         self.send_memes = True
 
     def fenns_message_react_chance(self, message_len: int) -> float:
@@ -34,20 +39,56 @@ class FennsHangouts(commands.Cog):
 
     @commands.Cog.listener(name="on_ready")
     async def on_ready(self):
+        guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
         while True:
             if self.send_memes:
                 await self.send_meme_from_subreddit("animemes")
-                await self.send_meme_from_subreddit("greentext")
+                await self.send_meme_from_subreddit("greentext", to_channel=guild.get_channel(1136533072855171093))
                 # Sleep for 3-9 hours
-                await sleep(randint(3 * 60 * 60, 9 * 60 * 60))
+                await sleep(5)
 
-    async def send_meme_from_subreddit(self, subreddit: str):
-        channel = self.random_text_channel()
-        rgreentext = await self.reddit.subreddit(subreddit)
-        top3 = [post async for post in rgreentext.new(limit=3)]
-        submission: Submission = choice(top3)
-        for url in self.urls_from_submission(submission):
-            await channel.send(url)
+    async def send_meme_from_subreddit(self, subreddit: str, to_channel=None):
+        # Define output channel
+        channel = self.random_text_channel() if to_channel == None else to_channel
+        # Find reddit post
+        reddit_thread = await self.reddit.subreddit(subreddit)
+        post_choices = [post async for post in reddit_thread.new(limit=3)]
+        submission: Submission = choice(post_choices)
+        # Repost check
+        scope_inc = 0
+        while submission.id in self.posts:
+            post_choices = [post async for post in reddit_thread.new(limit=3 + scope_inc)]
+            submission = choice(post_choices)
+            scope_inc += 1
+        # Update posts for repost check
+        if len(self.posts) > POST_CACHE:
+            # Remove last post
+            self.posts.pop(0)
+        self.posts.append(submission.id)
+
+        # Download files
+        link = "https://www.reddit.com" + submission.permalink
+        RedDownloader.Download(url=link, destination="temp/", verbose=False)
+        # Parse download output
+        file_name = os.listdir("temp")[0]
+        output = os.path.join(os.getcwd(), "temp", file_name)
+        if os.path.isfile(output):
+            # Singular file
+            await channel.send(file=File(output, file_name))
+            # Delete file
+            os.remove(output)
+        else:
+            # Directory
+            temp = os.path.join(os.getcwd(), "temp")
+            # Delete directory
+            for root, dirs, files in os.walk(temp, topdown=False):
+                for name in files:
+                    file_path = os.path.join(root, name)
+                    # Post file
+                    await channel.send(file=File(fp=file_path, filename=name))
+                    os.remove(file_path)
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
 
     def random_text_channel(self) -> TextChannel:
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
@@ -55,17 +96,6 @@ class FennsHangouts(commands.Cog):
         return choice(
             list(filter(lambda channel: type(channel) == TextChannel, guild.channels))
         )
-
-    def urls_from_submission(self, submission: Submission) -> List[str]:
-        """Primarily for parsing reddit galleries"""
-        if "/gallery/" in submission.url:
-            # The documentation is godawful because there are so many attributes (like media_metadata) that aren't listed AS EVEN EXISTING
-            return [
-                image_meta["p"][0]["u"].split("?")[0].replace("preview", "i")
-                for image_meta in submission.media_metadata.values()
-            ]
-        else:
-            return [submission.url]
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
