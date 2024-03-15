@@ -97,7 +97,7 @@ class FennsBot(commands.Bot):
 
 async def main():
     bot = FennsBot(intents=intents)
-    await bot.start(os.env["DISCORD_TOKEN"])
+    await bot.start(os.environ["DISCORD_TOKEN"])
 
 
 if __name__ == "__main__":
