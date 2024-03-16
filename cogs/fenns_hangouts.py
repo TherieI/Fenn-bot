@@ -6,12 +6,12 @@ from main import FennsBot
 from math import exp
 from typing import List
 import os
+import ffmpeg
 
 # Reddit fetch stuff
 from asyncpraw import Reddit
 from asyncpraw.models.reddit.submission import Submission
 from RedDownloader import RedDownloader
-
 
 audio = "resources/vine_boom.mp3"
 BOOM_DELAY = 3.0  # vine boom has a chance of occuring every 3 seconds
@@ -19,6 +19,40 @@ BOOM_FACTOR = 20  # 1/X Chance of playing the vine boom
 
 # Fenn stores the last X amount of posts to avoid reposts
 POST_CACHE = 50
+VIDEO_SIZE_MAX = 20 * 1024 * 1024 * 1024 # BYTES
+
+# Video compression
+def compress_video(video_full_path, output_file_name, target_size_bytes):
+    # Reference: https://en.wikipedia.org/wiki/Bit_rate#Encoding_bit_rate
+    min_audio_bitrate = 32000
+    max_audio_bitrate = 256000
+
+    probe = ffmpeg.probe(video_full_path)
+    # Video duration, in s.
+    duration = float(probe['format']['duration'])
+    # Audio bitrate, in bps.
+    audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+    # Target total bitrate, in bps.
+    target_total_bitrate = (target_size_bytes * 8) / (1.073741824 * duration)
+
+    # Target audio bitrate, in bps
+    if 10 * audio_bitrate > target_total_bitrate:
+        audio_bitrate = target_total_bitrate / 10
+        if audio_bitrate < min_audio_bitrate < target_total_bitrate:
+            audio_bitrate = min_audio_bitrate
+        elif audio_bitrate > max_audio_bitrate:
+            audio_bitrate = max_audio_bitrate
+    # Target video bitrate, in bps.
+    video_bitrate = target_total_bitrate - audio_bitrate
+
+    i = ffmpeg.input(video_full_path)
+    ffmpeg.output(i, os.devnull,
+                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 1, 'f': 'mp4'}
+                  ).overwrite_output().run()
+    ffmpeg.output(i, output_file_name,
+                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}
+                  ).overwrite_output().run()
+
 
 class FennsHangouts(commands.Cog):
     def __init__(self, bot: FennsBot) -> None:
@@ -68,13 +102,18 @@ class FennsHangouts(commands.Cog):
 
         # Download files
         link = "https://www.reddit.com" + submission.permalink
-        RedDownloader.Download(url=link, destination="temp/", verbose=False)
+        media = RedDownloader.Download(url=link, destination="temp/", verbose=False)
+        is_video = media.GetMediaType() == "v"
         # Parse download output
         file_name = os.listdir("temp")[0]
         output = os.path.join(os.getcwd(), "temp", file_name)
         if os.path.isfile(output):
             # Singular file
-            await channel.send(file=File(output, file_name))
+            send_file = output
+            if (is_video and os.stat(output).st_size > VIDEO_SIZE_MAX):
+                send_file = os.path.join(os.getcwd(), "temp", "compressed_" + file_name)
+                compress_video(output, send_file, VIDEO_SIZE_MAX)
+            await channel.send(file=File(send_file, file_name))
             # Delete file
             os.remove(output)
         else:
@@ -82,7 +121,7 @@ class FennsHangouts(commands.Cog):
             temp = os.path.join(os.getcwd(), "temp")
             # Delete directory
             for root, dirs, files in os.walk(temp, topdown=False):
-                for name in files:
+                for name in sorted(files):
                     file_path = os.path.join(root, name)
                     # Post file
                     await channel.send(file=File(fp=file_path, filename=name))
