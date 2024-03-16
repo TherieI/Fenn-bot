@@ -1,2 +1,4 @@
 discord.py[voice]
 asyncpraw
+RedDownloader
+ffmpeg-python
