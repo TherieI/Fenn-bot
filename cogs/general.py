@@ -81,7 +81,7 @@ class GeneralCommands(Cog):
 
     @Cog.listener(name="on_message")
     async def fish_react(self, message: Message):
-        if message.author.id == self.bot.owner_id:
+        if not message.author.bot and message.author.id == self.bot.owner_id:
             # The real commands
             # Fish react
             if (
@@ -97,7 +97,6 @@ class GeneralCommands(Cog):
                         1
                     ]
                 await react_to.add_reaction("🐟")
-
 
 async def setup(bot: FennsBot):
     await bot.add_cog(GeneralCommands(bot))

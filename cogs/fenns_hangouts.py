@@ -139,7 +139,7 @@ class FennsHangouts(commands.Cog):
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
-        if message.guild.id == self.fenns_hangouts_guild_id and not message.author.bot:
+        if not message.author.bot and message.guild != None and message.guild.id == self.fenns_hangouts_guild_id:
             react_chance = self.fenns_message_react_chance(
                 len(message.content.split(" "))
             )
