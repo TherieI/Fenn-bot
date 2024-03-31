@@ -24,6 +24,7 @@ VIDEO_SIZE_MAX = 20 * 1024 * 1024 * 1024 # BYTES
 # Video compression
 def compress_video(video_full_path, output_file_name, target_size_bytes):
     # Reference: https://en.wikipedia.org/wiki/Bit_rate#Encoding_bit_rate
+    print(f"COMPRESSING [{video_full_path}]")
     min_audio_bitrate = 32000
     max_audio_bitrate = 256000
 
@@ -76,11 +77,13 @@ class FennsHangouts(commands.Cog):
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
         while True:
             if self.send_memes:
+                # Sleep for 5 minutes (mainly for bot development spam purposes)
+                await sleep(5 * 60)
                 await self.send_meme_from_subreddit("animemes")
                 await self.send_meme_from_subreddit("Discordmemes")
                 await self.send_meme_from_subreddit("greentext", to_channel=guild.get_channel(1136533072855171093))
-                # Sleep for 3-9 hours
-                await sleep(randint(3 * 60 * 60, 10 * 60 * 60))
+                # Sleep for 3-7.5 hours
+                await sleep(randint(3 * 60 * 60, 7.5 * 60 * 60))
 
     async def send_meme_from_subreddit(self, subreddit: str, to_channel=None):
         # Define output channel
@@ -156,7 +159,7 @@ class FennsHangouts(commands.Cog):
                     "<:yan_right_2:843636023451713547>",
                 ]
             else:
-                emotes = list(message.guild.emojis) + [":thumbsup:"] + ["💀"] * 2
+                emotes = list(message.guild.emojis) + ["👍"] * 3 + ["💀"] * 2
             if len(message.attachments) >= 1 and random() <= 0.15:
                 # React to (hard) image
                 emote = choice(emotes)
@@ -209,8 +212,6 @@ class FennsHangouts(commands.Cog):
                 # Only leave if the channel has no members (1 includes bot)
                 await self.current_voice_channel.disconnect()
                 self.current_voice_channel = None
-
-        # print(f"{member.name} in {after.channel}")
 
 
 async def setup(bot: FennsBot):
