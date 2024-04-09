@@ -61,6 +61,7 @@ class FennsHangouts(commands.Cog):
         self.bot = bot
         self.current_voice_channel = None
         self.fenns_hangouts_guild_id = 987495278892433480
+        # No stealing owu
         self.reddit = Reddit(
             client_id="HYvVKpM1Gx3OxKmjNTJ4hQ",
             client_secret="mgnAvEHUQKiZRXxqcpmnL5MIan2MUw",
@@ -78,7 +79,7 @@ class FennsHangouts(commands.Cog):
         while True:
             if self.send_memes:
                 # Sleep for 5 minutes (mainly for bot development spam purposes)
-                await sleep(5 * 60)
+                # await sleep(5 * 60)
                 await self.send_meme_from_subreddit("animemes")
                 await self.send_meme_from_subreddit("Discordmemes")
                 await self.send_meme_from_subreddit("greentext", to_channel=guild.get_channel(1136533072855171093))
