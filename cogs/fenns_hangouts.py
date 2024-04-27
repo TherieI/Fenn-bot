@@ -5,6 +5,7 @@ from random import randint, random, choice
 from main import FennsBot
 from math import exp
 from typing import List
+import logging
 import os
 import ffmpeg
 
@@ -19,7 +20,7 @@ BOOM_FACTOR = 20  # 1/X Chance of playing the vine boom
 
 # Fenn stores the last X amount of posts to avoid reposts
 POST_CACHE = 50
-VIDEO_SIZE_MAX = 20 * 1024 * 1024 * 1024 # BYTES
+VIDEO_SIZE_MAX = 20 * 1024 * 1024 * 1024  # BYTES
 
 # Video compression
 def compress_video(video_full_path, output_file_name, target_size_bytes):
@@ -30,9 +31,13 @@ def compress_video(video_full_path, output_file_name, target_size_bytes):
 
     probe = ffmpeg.probe(video_full_path)
     # Video duration, in s.
-    duration = float(probe['format']['duration'])
+    duration = float(probe["format"]["duration"])
     # Audio bitrate, in bps.
-    audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+    audio_bitrate = float(
+        next((s for s in probe["streams"] if s["codec_type"] == "audio"), None)[
+            "bit_rate"
+        ]
+    )
     # Target total bitrate, in bps.
     target_total_bitrate = (target_size_bytes * 8) / (1.073741824 * duration)
 
@@ -47,12 +52,20 @@ def compress_video(video_full_path, output_file_name, target_size_bytes):
     video_bitrate = target_total_bitrate - audio_bitrate
 
     i = ffmpeg.input(video_full_path)
-    ffmpeg.output(i, os.devnull,
-                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 1, 'f': 'mp4'}
-                  ).overwrite_output().run()
-    ffmpeg.output(i, output_file_name,
-                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}
-                  ).overwrite_output().run()
+    ffmpeg.output(
+        i, os.devnull, **{"c:v": "libx264", "b:v": video_bitrate, "pass": 1, "f": "mp4"}
+    ).overwrite_output().run()
+    ffmpeg.output(
+        i,
+        output_file_name,
+        **{
+            "c:v": "libx264",
+            "b:v": video_bitrate,
+            "pass": 2,
+            "c:a": "aac",
+            "b:a": audio_bitrate,
+        },
+    ).overwrite_output().run()
 
 
 class FennsHangouts(commands.Cog):
@@ -76,17 +89,20 @@ class FennsHangouts(commands.Cog):
     @commands.Cog.listener(name="on_ready")
     async def on_ready(self):
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
-        while True:
-            if self.send_memes:
-                # Sleep for 5 minutes (mainly for bot development spam purposes)
-                # await sleep(5 * 60)
-                await self.send_meme_from_subreddit("animemes")
-                await self.send_meme_from_subreddit("Discordmemes")
-                await self.send_meme_from_subreddit("greentext", to_channel=guild.get_channel(1136533072855171093))
-                # Sleep for 3-7.5 hours
-                await sleep(randint(3 * 60 * 60, 7.5 * 60 * 60))
+        while self.send_memes:
+            # Sleep for 5 minutes (mainly for bot development spam purposes)
+            # await sleep(5 * 60)
+            await self.send_meme_from_subreddit("animemes")
+            await self.send_meme_from_subreddit("Discordmemes")
+            await self.send_meme_from_subreddit(
+                "greentext", to_channel=guild.get_channel(1136533072855171093)
+            )
+            # Sleep for 3-7.5 hours
+            await sleep(randint(3 * 60 * 60, 7.5 * 60 * 60))
+
 
     async def send_meme_from_subreddit(self, subreddit: str, to_channel=None):
+        self.bot.log(f"Sending meme from {subreddit}", log_level=logging.DEBUG)
         # Define output channel
         channel = self.random_text_channel() if to_channel == None else to_channel
         # Find reddit post
@@ -96,7 +112,9 @@ class FennsHangouts(commands.Cog):
         # Repost check
         scope_inc = 0
         while submission.id in self.posts:
-            post_choices = [post async for post in reddit_thread.new(limit=3 + scope_inc)]
+            post_choices = [
+                post async for post in reddit_thread.new(limit=3 + scope_inc)
+            ]
             submission = choice(post_choices)
             scope_inc += 1
         # Update posts for repost check
@@ -115,7 +133,7 @@ class FennsHangouts(commands.Cog):
         if os.path.isfile(output):
             # Singular file
             send_file = output
-            if (is_video and os.stat(output).st_size > VIDEO_SIZE_MAX):
+            if is_video and os.stat(output).st_size > VIDEO_SIZE_MAX:
                 send_file = os.path.join(os.getcwd(), "temp", "compressed_" + file_name)
                 compress_video(output, send_file, VIDEO_SIZE_MAX)
             await channel.send(file=File(send_file, file_name))
@@ -143,7 +161,11 @@ class FennsHangouts(commands.Cog):
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
-        if not message.author.bot and message.guild != None and message.guild.id == self.fenns_hangouts_guild_id:
+        if (
+            not message.author.bot
+            and message.guild != None
+            and message.guild.id == self.fenns_hangouts_guild_id
+        ):
             react_chance = self.fenns_message_react_chance(
                 len(message.content.split(" "))
             )

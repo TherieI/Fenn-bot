@@ -1,7 +1,9 @@
 from discord import app_commands, Interaction, Message, Embed, ui, ButtonStyle, File
 from discord.ext.commands import Cog
-from typing import List, Tuple
+from typing import List, Union
 from main import FennsBot, FennsIcon
+from discord.app_commands import Choice
+import io
 
 
 class EmbedBook(ui.View):
@@ -65,6 +67,47 @@ class GeneralCommands(Cog):
     def __init__(self, bot: FennsBot) -> None:
         super().__init__()
         self.bot = bot
+        
+    @Cog.listener(name="on_ready")
+    async def on_ready(self):
+        print(self.get_listeners())
+
+    @app_commands.command(
+        name="logging",
+        description="Change the logging debug level of Fenn. Only usable by the real.",
+    )
+    @app_commands.describe(level="Log level")
+    @app_commands.choices(
+        level=[
+            Choice(name="CRITICAL", value="50"),
+            Choice(name="ERROR", value="40"),
+            Choice(name="WARNING", value="30"),
+            Choice(name="INFO", value="20"),
+            Choice(name="DEBUG", value="10"),
+            Choice(name="NOTSET", value="0"),
+        ]
+    )
+    async def log_cmd(
+        self, interaction: Interaction, level: Choice[str],
+    ):
+        if interaction.user.id == self.bot.owner_id:
+            self.bot.logger.setLevel(level.name)
+            embed, png = self.bot.fenns_embed()
+            embed.add_field(name="__Logging__", value=f"{level.name}={level.value}")
+            await interaction.response.send_message(embed=embed, file=png, ephemeral=True)
+
+    @app_commands.command(
+        name="logfile",
+        description="Retrieve the log file of fenn. Only usable by the real.",
+    )
+    @app_commands.describe(date="Collect all logs from specified date (format=YYYY-MM-DD)")
+    async def log_file_cmd(self, interaction: Interaction, date: Union[None, str] = ""):
+        await interaction.response.defer(ephemeral=True)
+        if interaction.user.id == self.bot.owner_id:
+            log_bytes = self.bot.log_file(date=date).encode('utf-8')
+            file_bytes = io.BytesIO(log_bytes)
+            log_file = File(file_bytes, "fenns_log.txt")
+            await interaction.followup.send(file=log_file, ephemeral=True)
 
     @app_commands.command(
         name="listener",
@@ -97,6 +140,12 @@ class GeneralCommands(Cog):
                         1
                     ]
                 await react_to.add_reaction("🐟")
+    
+    @Cog.listener(name="on_command_error")
+    async def on_command_error(self, /, *args, **kwargs):
+        print("GENERAL Error")
+        self.bot.on_error(*args, **kwargs)
+
 
 async def setup(bot: FennsBot):
     await bot.add_cog(GeneralCommands(bot))

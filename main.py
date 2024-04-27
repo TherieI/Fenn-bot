@@ -4,10 +4,13 @@ from asyncio import run as async_run
 import os
 from typing import Tuple
 import sys, traceback
-from datetime import datetime
+from datetime import datetime, timedelta
+
+LOG_FILE = "fennl.log"
+MAIN_PATH = os.getcwd()
 
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 intents = discord.Intents.all()
 intents.voice_states = True
@@ -29,13 +32,21 @@ class FennsBot(commands.Bot):
             )
         }
         self.owner_id = 283677434476363776
-        self.reaction_listeners = [
+        self.reaction_listeners = [ # Message id's the bot should listen to
             1173735486578245744
-        ]  # Message id's the bot should listen to
-        # self.openai_client = AsyncOpenAI()
+        ]
+        # Logging to console and discord
+        self.logger = logging.getLogger()
+        # Create a file handler and set the logging level
+        file_handler = logging.FileHandler(LOG_FILE)
+        # Create a console handler and set the logging level
+        console_handler = logging.StreamHandler()
+        # Add the handlers to the logger
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
 
     async def on_ready(self):
-        print(f"{self.user} is up and running!")
+        self.log(f"{self.user} is up and running!")
 
     async def on_message(self, message: discord.Message):
         if not message.author.bot:
@@ -94,7 +105,7 @@ class FennsBot(commands.Bot):
     async def on_error(self, /, *args, **kwargs):
         # Print default information to console
         await super().on_error(self, args, kwargs)
-        print("[Sending error to mods]")
+        self.log("Sending error to mods...", log_level=logging.ERROR)
         exc_type, exc_value, exc_traceback = sys.exc_info()
         time = datetime.now()
         msg = f"```py\n[{time.strftime('%d/%m/%y | %H:%M AM : %S.%f')}]\nTraceback (most recent call last):\n"
@@ -103,6 +114,37 @@ class FennsBot(commands.Bot):
         msg += f"{exc_type.__name__}: {exc_value}\n```"
         mod = self.get_user(self.owner_id) 
         await mod.send(content=msg)
+        self.logger.error(msg)
+
+    # Function for debugging by sending logs to the owner
+    def log(self, message, /, log_level=logging.INFO, *args, **kwargs):
+        if self.logger.level >= log_level:
+            print(message)
+        try:
+            self.logger.log(log_level, message, *args, **kwargs)
+        except:
+            self.logger.warn(f"Logging library error with message: {message}")
+
+    # Get the contents of the log file from a certain date
+    # If date is unspecified return the last 24 hours of info
+    def log_file(self, date="") -> str:
+        DATE_FORMAT = f"%Y-%m-%d"
+        try:
+            target_date = datetime.strptime(date, DATE_FORMAT)
+        except ValueError:
+            target_date = datetime.now() - timedelta(days=1)
+        contents = []
+        with open(os.path.join(MAIN_PATH, LOG_FILE), "r") as fenns_log:
+            contents = fenns_log.readlines()
+        starting_index = 0
+        for line in contents:
+            # First 10 characters of a line is the date
+            date = datetime.strptime(line[0:10], DATE_FORMAT)
+            if target_date <= date:
+                break;
+            starting_index += 1
+        return "".join(contents[starting_index:])
+
 
 async def main():
     bot = FennsBot(intents=intents)
@@ -111,7 +153,7 @@ async def main():
 
 if __name__ == "__main__":
     # Create temp file for media downloads if not already existing
-    temp = os.path.join(os.getcwd(), "temp")
+    temp = os.path.join(MAIN_PATH, "temp")
     if not os.path.exists(temp):
         print("Folder temp not found! Creating folder...")
         os.makedirs(temp)
