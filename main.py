@@ -101,6 +101,10 @@ class FennsBot(commands.Bot):
         await interaction.followup.send(embed=embed, file=gif, ephemeral=True)
         # await interaction.response.send_message(embed=embed, file=gif, ephemeral=True)
 
+    async def log_to_mods(self, msg):
+        mod = self.get_user(self.owner_id) 
+        await mod.send(content=msg)
+
     # Custom error handler (sends errors to Theriel)
     async def on_error(self, /, *args, **kwargs):
         # Print default information to console
