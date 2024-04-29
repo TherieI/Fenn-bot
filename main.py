@@ -99,7 +99,6 @@ class FennsBot(commands.Bot):
         # Sending a gif can take time, so we need to defer then send it
         await interaction.response.defer(ephemeral=True)
         await interaction.followup.send(embed=embed, file=gif, ephemeral=True)
-        # await interaction.response.send_message(embed=embed, file=gif, ephemeral=True)
 
     async def log_to_mods(self, msg):
         mod = self.get_user(self.owner_id) 

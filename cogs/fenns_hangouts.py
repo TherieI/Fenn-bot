@@ -99,7 +99,7 @@ class FennsHangouts(commands.Cog):
                 "greentext", to_channel=guild.get_channel(1136533072855171093)
             )
             # Sleep for 3-7.5 hours
-            await sleep(randint(3 * 60 * 60, 6 * 60 * 60))
+            await sleep(randint(3 * 60 * 60, 8 * 60 * 60))
 
 
     async def send_meme_from_subreddit(self, subreddit: str, to_channel=None):
@@ -126,7 +126,11 @@ class FennsHangouts(commands.Cog):
 
         # Download files
         link = "https://www.reddit.com" + submission.permalink
-        media = RedDownloader.Download(url=link, destination="temp/", verbose=False)
+        try:
+            media = RedDownloader.Download(url=link, destination="temp/", verbose=False)
+        except BaseException as e:
+            self.bot.log_to_mods("Reddownloader failed :(")
+            return
         is_video = media.GetMediaType() == "v"
         # Parse download output
         file_name = os.listdir("temp")[0]
