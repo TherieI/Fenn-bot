@@ -92,7 +92,7 @@ class FennsHangouts(commands.Cog):
         while self.send_memes:
             # Sleep for 5 minutes (mainly for bot development spam purposes)
             # await sleep(5 * 60)
-            await self.bot.log_to_mods("Sending Memes")
+            # await self.bot.log_to_mods("Sending Memes")
             await self.send_meme_from_subreddit("animemes")
             await self.send_meme_from_subreddit("Discordmemes")
             await self.send_meme_from_subreddit(
