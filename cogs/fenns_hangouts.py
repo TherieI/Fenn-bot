@@ -8,6 +8,7 @@ from typing import List
 import logging
 import os
 import ffmpeg
+from http.client import HTTPException
 
 # Reddit fetch stuff
 from asyncpraw import Reddit
@@ -137,11 +138,15 @@ class FennsHangouts(commands.Cog):
         output = os.path.join(os.getcwd(), "temp", file_name)
         if os.path.isfile(output):
             # Singular file
-            send_file = output
-            if is_video and os.stat(output).st_size > VIDEO_SIZE_MAX:
-                send_file = os.path.join(os.getcwd(), "temp", "compressed_" + file_name)
-                compress_video(output, send_file, VIDEO_SIZE_MAX)
-            await channel.send(file=File(send_file, file_name))
+            try:
+                await channel.send(file=File(output, file_name))
+            except HTTPException as httpe:
+                # File was likely too big
+                if is_video:
+                    compressed_output = os.path.join(os.getcwd(), "temp", "compressed_" + file_name)
+                    compress_video(output, compressed_output)
+                    await channel.send(file=File(compressed_output, "compressed_" + file_name))
+
             # Delete file
             os.remove(output)
         else:
