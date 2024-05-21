@@ -82,7 +82,7 @@ class FennsHangouts(commands.Cog):
             user_agent="Fenn's Scrapinator by u/Thendriz",
         )
         self.posts = []
-        self.send_memes = True
+        self.do_send_memes = True
 
     def fenns_message_react_chance(self, message_len: int) -> float:
         return 1 / (8 + exp(-0.1 * message_len + 8.4)) + 0.03
@@ -100,7 +100,7 @@ class FennsHangouts(commands.Cog):
 
     async def send_memes(self):
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
-        while self.send_memes:
+        while self.do_send_memes:
             # Sleep for 5 minutes (mainly for bot development spam purposes)
             # await sleep(5 * 60)
             # await self.bot.log_to_mods("Sending Memes")
