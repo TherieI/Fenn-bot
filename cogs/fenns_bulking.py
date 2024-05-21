@@ -218,9 +218,7 @@ class Bulker:
             history = dict(dates)
         return history
 
-
 BULKER = Bulker()
-
 
 class FennsBulking(commands.Cog):
     def __init__(self, bot: FennsBot) -> None:

@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord import FFmpegPCMAudio, Message, Member, VoiceState, TextChannel, File
+from discord import FFmpegPCMAudio, Message, Member, VoiceState, TextChannel, File, app_commands, Interaction
 from asyncio import sleep
 from random import randint, random, choice
 from main import FennsBot
@@ -89,6 +89,16 @@ class FennsHangouts(commands.Cog):
 
     @commands.Cog.listener(name="on_ready")
     async def on_ready(self):
+        await self.send_memes()
+
+    @app_commands.command(name="resetmemes", description="Resets the meme spam.")
+    async def reset_memes(self, interaction: Interaction):
+        await self.send_memes()
+        embed, png = self.bot.fenns_embed()
+        embed.add_field(name="Calling `send_memes`.", value="")
+        await interaction.response.send_message(embed=embed, file=png, ephemeral=True)
+
+    async def send_memes(self):
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
         while self.send_memes:
             # Sleep for 5 minutes (mainly for bot development spam purposes)
@@ -101,7 +111,6 @@ class FennsHangouts(commands.Cog):
             )
             # Sleep for 3-7.5 hours
             await sleep(randint(3 * 60 * 60, 8 * 60 * 60))
-
 
     async def send_meme_from_subreddit(self, subreddit: str, to_channel=None):
         self.bot.log(f"Sending meme from {subreddit}", log_level=logging.DEBUG)
@@ -124,7 +133,6 @@ class FennsHangouts(commands.Cog):
             # Remove last post
             self.posts.pop(0)
         self.posts.append(submission.id)
-
         # Download files
         link = "https://www.reddit.com" + submission.permalink
         try:
@@ -140,15 +148,15 @@ class FennsHangouts(commands.Cog):
             # Singular file
             try:
                 await channel.send(file=File(output, file_name))
+                # Delete file
+                os.remove(output)
             except HTTPException as httpe:
                 # File was likely too big
                 if is_video:
                     compressed_output = os.path.join(os.getcwd(), "temp", "compressed_" + file_name)
                     compress_video(output, compressed_output)
                     await channel.send(file=File(compressed_output, "compressed_" + file_name))
-
-            # Delete file
-            os.remove(output)
+                    os.remove(compressed_output)
         else:
             # Directory
             temp = os.path.join(os.getcwd(), "temp")
