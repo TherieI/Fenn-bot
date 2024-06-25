@@ -104,11 +104,14 @@ class FennsHangouts(commands.Cog):
             # Sleep for 5 minutes (mainly for bot development spam purposes)
             # await sleep(5 * 60)
             # await self.bot.log_to_mods("Sending Memes")
-            await self.send_meme_from_subreddit("animemes")
-            await self.send_meme_from_subreddit("Discordmemes")
-            await self.send_meme_from_subreddit(
-                "greentext", to_channel=guild.get_channel(1136533072855171093)
-            )
+            try:
+                await self.send_meme_from_subreddit("animemes")
+                await self.send_meme_from_subreddit("Discordmemes")
+                await self.send_meme_from_subreddit(
+                    "greentext", to_channel=guild.get_channel(1136533072855171093)
+                )
+            except:
+                self.bot.log("Error sending a meme...")
             # Sleep for 3-7.5 hours
             await sleep(randint(3 * 60 * 60, 8 * 60 * 60))
 
