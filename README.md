@@ -1,5 +1,5 @@
 # Fenn bot
-Something to manage niche things on discord. This bot leverages slash commands built using `discord.py`'s cog system, which is something I haven't really seen from other projects upon first inspection. Here's some example of the features and code, which includes...
+Something to manage niche things on discord. This bot leverages slash commands built using `discord.py`'s cog system, which is something I haven't really seen from other projects when I initially saught examples. Here lie some features of the delicate Fenn, including, but limited to...
 - Slash commands & Cogs
 - Slash Autocompetion
 - Slash choice sets
