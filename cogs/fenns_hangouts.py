@@ -23,6 +23,12 @@ BOOM_FACTOR = 20  # 1/X Chance of playing the vine boom
 POST_CACHE = 50
 VIDEO_SIZE_MAX = 20 * 1024 * 1024 * 1024  # BYTES
 
+SPAM_CHANNEL_IDS = [
+                    987534532888649789,     # Bin liden's flight school
+                    1136541984568393799,    # Wheelchair drift club
+                    1082504979325141063,    # Micky mouse crackhouse
+                 ]
+
 # Video compression
 def compress_video(video_full_path, output_file_name, target_size_bytes):
     # Reference: https://en.wikipedia.org/wiki/Bit_rate#Encoding_bit_rate
@@ -105,7 +111,8 @@ class FennsHangouts(commands.Cog):
             # await sleep(5 * 60)
             # await self.bot.log_to_mods("Sending Memes")
             try:
-                await self.send_meme_from_subreddit("animemes")
+                # await self.send_meme_from_subreddit("animemes")
+                await self.send_meme_from_subreddit("holdmybeer")
                 await self.send_meme_from_subreddit("Discordmemes")
                 await self.send_meme_from_subreddit(
                     "greentext", to_channel=guild.get_channel(1136533072855171093)
@@ -176,9 +183,7 @@ class FennsHangouts(commands.Cog):
     def random_text_channel(self) -> TextChannel:
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
         # Choose one channel from a list only text channels
-        return choice(
-            list(filter(lambda channel: type(channel) == TextChannel, guild.channels))
-        )
+        return guild.get_channel(choice(SPAM_CHANNEL_IDS))
 
     @commands.Cog.listener(name="on_message")
     async def fenn_react(self, message: Message):
