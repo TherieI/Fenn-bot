@@ -102,12 +102,14 @@ class FennsHangouts(commands.Cog):
     @app_commands.command(name="togglememes", description="Toggles Fenn's meme spam.")
     async def toggle_memes(self, interaction: Interaction):
         self.do_send_memes = not self.do_send_memes
-        if self.do_send_memes:
-            # Meme spam was toggled off, so now we need to start them back up
-            await self.send_memes()
+
         embed, png = self.bot.fenns_embed()
         embed.add_field(name="Toggling meme spam!", value=f"`{not self.do_send_memes}` -> `{self.do_send_memes}`")
         await interaction.response.send_message(embed=embed, file=png, ephemeral=True)
+
+        if self.do_send_memes:
+            # Meme spam was toggled off, so now we need to start them back up
+            await self.send_memes()
 
     async def send_memes(self):
         guild = self.bot.get_guild(self.fenns_hangouts_guild_id)
@@ -118,7 +120,6 @@ class FennsHangouts(commands.Cog):
             try:
                 # await self.send_meme_from_subreddit("animemes")
                 await self.send_meme_from_subreddit("freshcutslim")
-                await self.send_meme_from_subreddit("Discordmemes")
                 await self.send_meme_from_subreddit(
                     "greentext", to_channel=guild.get_channel(1136533072855171093)
                 )
