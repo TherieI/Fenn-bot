@@ -19,6 +19,8 @@ audio = "resources/vine_boom.mp3"
 BOOM_DELAY = 3.0  # vine boom has a chance of occuring every 3 seconds
 BOOM_FACTOR = 20  # 1/X Chance of playing the vine boom
 
+REDDIT_THREAD_SCOPE_LIMIT = 50
+
 # Fenn stores the last X amount of posts to avoid reposts
 POST_CACHE = 50
 VIDEO_SIZE_MAX = 20 * 1024 * 1024 * 1024  # BYTES
@@ -97,11 +99,14 @@ class FennsHangouts(commands.Cog):
     async def on_ready(self):
         await self.send_memes()
 
-    @app_commands.command(name="resetmemes", description="Resets the meme spam.")
-    async def reset_memes(self, interaction: Interaction):
-        await self.send_memes()
+    @app_commands.command(name="togglememes", description="Toggles Fenn's meme spam.")
+    async def toggle_memes(self, interaction: Interaction):
+        self.do_send_memes = not self.do_send_memes
+        if self.do_send_memes:
+            # Meme spam was toggled off, so now we need to start them back up
+            await self.send_memes()
         embed, png = self.bot.fenns_embed()
-        embed.add_field(name="Calling `send_memes`.", value="")
+        embed.add_field(name="Toggling meme spam!", value=f"`{not self.do_send_memes}` -> `{self.do_send_memes}`")
         await interaction.response.send_message(embed=embed, file=png, ephemeral=True)
 
     async def send_memes(self):
@@ -112,7 +117,7 @@ class FennsHangouts(commands.Cog):
             # await self.bot.log_to_mods("Sending Memes")
             try:
                 # await self.send_meme_from_subreddit("animemes")
-                await self.send_meme_from_subreddit("holdmybeer")
+                await self.send_meme_from_subreddit("freshcutslim")
                 await self.send_meme_from_subreddit("Discordmemes")
                 await self.send_meme_from_subreddit(
                     "greentext", to_channel=guild.get_channel(1136533072855171093)
@@ -132,7 +137,7 @@ class FennsHangouts(commands.Cog):
         submission: Submission = choice(post_choices)
         # Repost check
         scope_inc = 0
-        while submission.id in self.posts:
+        while submission.id in self.posts and scope_inc < REDDIT_THREAD_SCOPE_LIMIT:
             post_choices = [
                 post async for post in reddit_thread.new(limit=3 + scope_inc)
             ]
